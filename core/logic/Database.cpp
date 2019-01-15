@@ -509,15 +509,20 @@ void DBManager::RunFrame()
 		return;
 	}
 
-	/* Dump one thing per-frame so the server stays sane. */
-	IDBThreadOperation *op;
+	int count = 10;
+	/* Dump more things per-frame so the queries dont stuck. */
+	while (m_ThinkQueue.size() && count > 0) 
 	{
-		ke::AutoLock lock(&m_ThinkLock);
-		op = m_ThinkQueue.first();
-		m_ThinkQueue.pop();
+		IDBThreadOperation *op;
+		{
+			ke::AutoLock lock(&m_ThinkLock);
+			op = m_ThinkQueue.first();
+			m_ThinkQueue.pop();
+		}
+		op->RunThinkPart();
+		op->Destroy();
+		--count;
 	}
-	op->RunThinkPart();
-	op->Destroy();
 }
 
 void DBManager::OnSourceModIdentityDropped(IdentityToken_t *pToken)
